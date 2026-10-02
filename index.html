@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1C2230">
+<title>Lights</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --dusk: #1C2230;
+    --panel: #262E3F;
+    --panel-edge: #333C50;
+    --glow: #FFC98A;
+    --glow-deep: #E89B4A;
+    --cool: #8A93A6;
+    --ink: #EEF0F4;
+    --err: #FF8A80;
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  *, *::before, *::after { box-sizing: inherit; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: var(--dusk);
+    color: var(--ink);
+    font-family: "Figtree", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    display: flex;
+    flex-direction: column;
+  }
+  main {
+    flex: 0 1 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 20px;
+    overflow-y: auto;
+  }
+  .room {
+    position: relative;
+    background: var(--panel);
+    border: 1px solid var(--panel-edge);
+    border-radius: 28px;
+    padding: 20px;
+    transition: background .5s ease, box-shadow .5s ease;
+    overflow: hidden;
+  }
+  .room.lit {
+    background: radial-gradient(120% 140% at 15% 0%, rgba(255,201,138,.28), rgba(255,201,138,0) 60%), var(--panel);
+    box-shadow: 0 0 60px -20px var(--glow-deep);
+  }
+  .room h2 {
+    margin: 0 0 4px;
+    font-size: 1.6rem;
+    font-weight: 800;
+    letter-spacing: -.01em;
+  }
+  .status { margin: 0 0 16px; color: var(--cool); font-size: .95rem; min-height: 1.3em; }
+  .status.err { color: var(--err); }
+  .room.lit .status { color: var(--glow); }
+  .btns { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  button {
+    font: inherit;
+    border: none;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  .btn {
+    min-height: 88px;
+    border-radius: 20px;
+    font-size: 1.35rem;
+    font-weight: 800;
+    transition: transform .08s ease, opacity .2s;
+  }
+  .btn:active { transform: scale(.96); }
+  .btn:disabled { opacity: .5; }
+  .btn-on { background: var(--glow); color: #3A2410; }
+  .btn-off { background: #3A4358; color: var(--ink); }
+  .btn:focus-visible, .gear:focus-visible, .field input:focus-visible { outline: 3px solid var(--glow); outline-offset: 3px; }
+
+  .all { background: transparent; border: 1px dashed var(--panel-edge); }
+  .all h2 { font-size: 1.2rem; }
+
+  .empty { margin: auto; text-align: center; max-width: 28ch; color: var(--cool); line-height: 1.5; }
+  .empty strong { color: var(--ink); display: block; font-size: 1.3rem; margin-bottom: 6px; }
+
+  footer { display: flex; justify-content: flex-end; align-items: center; padding: 0 20px 16px; }
+  .sonos-tile {
+    flex: 1;
+    min-height: 140px;
+    margin: 0 20px 16px;
+    border-radius: 28px;
+    background: linear-gradient(160deg, #2E3650, #1F2536);
+    border: 1px solid var(--panel-edge);
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+    cursor: pointer;
+    transition: transform .08s ease;
+  }
+  .sonos-tile:active { transform: scale(.98); }
+  .sonos-tile:focus-visible { outline: 3px solid var(--glow); outline-offset: 3px; }
+  .sonos-icon { font-size: 3.2rem; line-height: 1; color: var(--glow); }
+  .sonos-label { font-size: 1.8rem; font-weight: 800; letter-spacing: -.01em; }
+  .sonos-sub { color: var(--cool); font-size: .95rem; }
+
+  /* Clock mode (Fully screensaver wallpaper: page URL + #clock) */
+  body.clock-mode { background: #000; }
+  body.clock-mode > *:not(.clock) { display: none !important; }
+  .clock { margin: auto; text-align: center; color: #C9CDD6; }
+  .clock-time { font-size: clamp(4rem, 26vw, 11rem); font-weight: 400; letter-spacing: -.03em; line-height: 1; font-variant-numeric: tabular-nums; }
+  .clock-date { margin-top: 12px; font-size: clamp(1rem, 5vw, 1.6rem); color: #7C8394; }
+  .sonos {
+    display: inline-flex; align-items: center; gap: 8px;
+    min-height: 48px; padding: 0 18px; border-radius: 24px;
+    background: var(--panel); color: var(--ink);
+    font-weight: 700; text-decoration: none;
+  }
+  /* Compact layout when sharing the screen with Sonos */
+  @media (max-height: 520px) {
+    main { padding: 12px; gap: 10px; }
+    .room { padding: 14px 16px; border-radius: 22px; }
+    .room h2 { font-size: 1.25rem; }
+    .status { margin-bottom: 10px; }
+    .btn { min-height: 64px; font-size: 1.2rem; }
+    .sonos-tile { margin: 0 12px 10px; min-height: 90px; }
+    .sonos-icon { font-size: 2.2rem; }
+    footer { padding: 0 12px 10px; }
+  }
+  .gear {
+    width: 48px; height: 48px; border-radius: 50%;
+    background: var(--panel); color: var(--cool);
+    display: grid; place-items: center;
+    position: relative;
+  }
+  .gear svg { width: 22px; height: 22px; }
+  .gear .ring {
+    position: absolute; inset: -3px; border-radius: 50%;
+    border: 3px solid var(--glow);
+    clip-path: inset(0 100% 0 0);
+  }
+  .gear.holding .ring { transition: clip-path 1.2s linear; clip-path: inset(0 0 0 0); }
+
+  /* Settings sheet */
+  dialog {
+    width: min(560px, 100%);
+    max-height: 100%;
+    margin: auto;
+    border: none;
+    border-radius: 24px;
+    background: var(--panel);
+    color: var(--ink);
+    padding: 20px;
+  }
+  dialog::backdrop { background: rgba(10,12,18,.7); }
+  dialog h1 { margin: 0 0 4px; font-size: 1.4rem; }
+  dialog p.hint { margin: 0 0 16px; color: var(--cool); font-size: .9rem; line-height: 1.45; }
+  .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+  .field label { font-size: .85rem; color: var(--cool); font-weight: 600; }
+  .field input {
+    font: inherit; font-size: 1rem;
+    background: var(--dusk); color: var(--ink);
+    border: 1px solid var(--panel-edge); border-radius: 12px;
+    padding: 12px; width: 100%; user-select: text;
+  }
+  fieldset {
+    border: 1px solid var(--panel-edge); border-radius: 16px;
+    padding: 12px 12px 4px; margin: 0 0 12px;
+  }
+  legend { padding: 0 6px; color: var(--cool); font-size: .85rem; font-weight: 600; }
+  .row-actions { display: flex; justify-content: flex-end; margin-bottom: 8px; }
+  .link { background: none; color: var(--err); font-size: .9rem; padding: 6px; }
+  .sheet-actions { display: flex; gap: 10px; margin-top: 8px; }
+  .sheet-actions button { flex: 1; min-height: 52px; border-radius: 14px; font-weight: 700; font-size: 1rem; }
+  .add { background: none; border: 1px dashed var(--panel-edge) !important; color: var(--ink); width: 100%; min-height: 48px; border-radius: 14px; margin-bottom: 12px; }
+  .save { background: var(--glow); color: #3A2410; }
+  .cancel { background: #3A4358; color: var(--ink); }
+
+  @media (min-width: 700px) and (orientation: landscape) {
+    main { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); align-content: start; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .room, .btn, .gear.holding .ring { transition: none; }
+  }
+</style>
+</head>
+<body>
+<main id="rooms"></main>
+<section class="sonos-tile" id="sonosTile" role="button" tabindex="0" aria-label="Open Sonos">
+  <span class="sonos-icon">&#9835;</span>
+  <span class="sonos-label">Sonos</span>
+  <span class="sonos-sub">Tap to open music</span>
+</section>
+<div class="clock" id="clock" hidden>
+  <div class="clock-time" id="clockTime"></div>
+  <div class="clock-date" id="clockDate"></div>
+</div>
+<footer>
+  <button class="gear" id="gear" aria-label="Settings (press and hold)">
+    <span class="ring"></span>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+  </button>
+</footer>
+
+<dialog id="sheet">
+  <h1>Light settings</h1>
+  <p class="hint">Paste your Voice Monkey v3 API token and the Routine Trigger device IDs for each room. Settings stay on this phone.</p>
+  <div class="field">
+    <label for="token">Voice Monkey API token</label>
+    <input id="token" type="password" autocomplete="off" spellcheck="false">
+  </div>
+  <div id="roomFields"></div>
+  <button class="add" id="addRoom">Add a room</button>
+  <div class="sheet-actions">
+    <button class="cancel" id="cancel">Cancel</button>
+    <button class="save" id="save">Save</button>
+  </div>
+</dialog>
+
+<script>
+(() => {
+  const API = "https://api-v3.voicemonkey.io/trigger";
+  const KEY = "oasis-lights-config";
+  const STATE_KEY = "oasis-lights-state";
+
+  const load = (k, fallback) => {
+    try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : fallback; }
+    catch { return fallback; }
+  };
+  const store = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
+
+  const PRESET = {
+    token: "",
+    rooms: [{ name: "Lounge", on: "lounge-lights-on-wbszu", off: "lounge-lights-off-fkezh" }]
+  };
+  let config = load(KEY, PRESET);
+  let state = load(STATE_KEY, {});
+
+  const $rooms = document.getElementById("rooms");
+
+  async function fire(deviceId) {
+    const url = `${API}?token=${encodeURIComponent(config.token)}&device=${encodeURIComponent(deviceId)}`;
+    try {
+      const res = await fetch(url, { method: "GET" });
+      if (!res.ok) {
+        const body = await res.text().catch(() => "");
+        throw new Error(res.status === 401 ? "Token rejected" : res.status === 404 ? "Device not found" : `Error ${res.status}${body ? "" : ""}`);
+      }
+      return "ok";
+    } catch (e) {
+      if (e instanceof TypeError) {
+        // Browser blocked reading the response (CORS). Send anyway; request still reaches Voice Monkey.
+        await fetch(url, { method: "GET", mode: "no-cors" });
+        return "sent";
+      }
+      throw e;
+    }
+  }
+
+  function roomCard(room, idx) {
+    const card = document.createElement("section");
+    card.className = "room" + (state[idx] === "on" ? " lit" : "");
+    card.innerHTML = `
+      <h2></h2>
+      <p class="status" aria-live="polite"></p>
+      <div class="btns">
+        <button class="btn btn-on">On</button>
+        <button class="btn btn-off">Off</button>
+      </div>`;
+    card.querySelector("h2").textContent = room.name || "Lights";
+    const status = card.querySelector(".status");
+    const setIdle = () => {
+      status.classList.remove("err");
+      status.textContent = state[idx] === "on" ? "Turned on" : state[idx] === "off" ? "Turned off" : "";
+    };
+    setIdle();
+
+    const run = async (which, btn) => {
+      const id = which === "on" ? room.on : room.off;
+      if (!id) { status.classList.add("err"); status.textContent = `No ${which} trigger set for this room`; return; }
+      const buttons = card.querySelectorAll(".btn");
+      buttons.forEach(b => b.disabled = true);
+      status.classList.remove("err");
+      status.textContent = which === "on" ? "Turning on…" : "Turning off…";
+      try {
+        await fire(id);
+        state[idx] = which;
+        store(STATE_KEY, state);
+        card.classList.toggle("lit", which === "on");
+        setIdle();
+      } catch (e) {
+        status.classList.add("err");
+        status.textContent = `Couldn't reach lights: ${e.message}`;
+      } finally {
+        buttons.forEach(b => b.disabled = false);
+      }
+    };
+    card.querySelector(".btn-on").addEventListener("click", e => run("on", e.currentTarget));
+    card.querySelector(".btn-off").addEventListener("click", e => run("off", e.currentTarget));
+    card._run = run;
+    return card;
+  }
+
+  function render() {
+    $rooms.innerHTML = "";
+    const rooms = config.rooms.filter(r => r.on || r.off);
+    if (!config.token || rooms.length === 0) {
+      $rooms.innerHTML = `<div class="empty"><strong>No lights set up yet</strong>Press and hold the gear in the corner to add your Voice Monkey token and room triggers.</div>`;
+      return;
+    }
+    const cards = config.rooms.map((r, i) => roomCard(r, i));
+    if (cards.length > 1) {
+      const all = document.createElement("section");
+      all.className = "room all";
+      all.innerHTML = `<h2>Every room</h2><p class="status"></p><div class="btns"><button class="btn btn-on">All on</button><button class="btn btn-off">All off</button></div>`;
+      all.querySelector(".btn-on").addEventListener("click", () => cards.forEach(c => c._run("on")));
+      all.querySelector(".btn-off").addEventListener("click", () => cards.forEach(c => c._run("off")));
+      $rooms.appendChild(all);
+    }
+    cards.forEach(c => $rooms.appendChild(c));
+  }
+
+  // Settings — press and hold so kids can't wander in
+  const gear = document.getElementById("gear");
+  const sheet = document.getElementById("sheet");
+  const $fields = document.getElementById("roomFields");
+  let holdTimer;
+  const startHold = e => {
+    e.preventDefault();
+    gear.classList.add("holding");
+    holdTimer = setTimeout(() => { gear.classList.remove("holding"); openSheet(); }, 1200);
+  };
+  const endHold = () => { clearTimeout(holdTimer); gear.classList.remove("holding"); };
+  gear.addEventListener("pointerdown", startHold);
+  ["pointerup", "pointerleave", "pointercancel"].forEach(ev => gear.addEventListener(ev, endHold));
+  gear.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") openSheet(); });
+
+  function roomFieldset(r = { name: "", on: "", off: "" }) {
+    const fs = document.createElement("fieldset");
+    fs.innerHTML = `
+      <legend>Room</legend>
+      <div class="field"><label>Room name</label><input data-k="name" placeholder="Living room"></div>
+      <div class="field"><label>"On" trigger device ID</label><input data-k="on" spellcheck="false"></div>
+      <div class="field"><label>"Off" trigger device ID</label><input data-k="off" spellcheck="false"></div>
+      <div class="row-actions"><button class="link" type="button">Remove room</button></div>`;
+    fs.querySelectorAll("input").forEach(inp => inp.value = r[inp.dataset.k] || "");
+    fs.querySelector(".link").addEventListener("click", () => fs.remove());
+    return fs;
+  }
+
+  function openSheet() {
+    document.getElementById("token").value = config.token;
+    $fields.innerHTML = "";
+    (config.rooms.length ? config.rooms : [undefined]).forEach(r => $fields.appendChild(roomFieldset(r)));
+    sheet.showModal();
+  }
+  document.getElementById("addRoom").addEventListener("click", () => $fields.appendChild(roomFieldset()));
+  document.getElementById("cancel").addEventListener("click", () => sheet.close());
+  document.getElementById("save").addEventListener("click", () => {
+    config = {
+      token: document.getElementById("token").value.trim(),
+      rooms: [...$fields.querySelectorAll("fieldset")].map(fs => {
+        const o = {};
+        fs.querySelectorAll("input").forEach(inp => o[inp.dataset.k] = inp.value.trim());
+        return o;
+      }).filter(r => r.name || r.on || r.off)
+    };
+    state = {};
+    store(KEY, config);
+    store(STATE_KEY, state);
+    sheet.close();
+    render();
+  });
+
+  // Sonos launcher: Fully's JS interface if enabled, intent URL otherwise
+  const SONOS_PKG = "com.sonos.acr2";
+  const openSonos = () => {
+    try {
+      if (typeof fully !== "undefined" && fully.startApplication) { fully.startApplication(SONOS_PKG); return; }
+    } catch {}
+    window.location.href = `intent://#Intent;package=${SONOS_PKG};end`;
+  };
+  const tile = document.getElementById("sonosTile");
+  tile.addEventListener("click", openSonos);
+  tile.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") openSonos(); });
+
+  // Clock mode
+  if (location.hash === "#clock") {
+    document.body.classList.add("clock-mode");
+    const clock = document.getElementById("clock");
+    clock.hidden = false;
+    const t = document.getElementById("clockTime"), d = document.getElementById("clockDate");
+    const tick = () => {
+      const now = new Date();
+      t.textContent = now.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }).replace(/\s?[AP]M$/i, "");
+      d.textContent = now.toLocaleDateString([], { weekday: "long", month: "long", day: "numeric" });
+    };
+    tick();
+    setInterval(tick, 1000);
+    return;
+  }
+
+  render();
+})();
+</script>
+</body>
+</html>
