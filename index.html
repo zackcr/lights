@@ -380,7 +380,8 @@
     try {
       if (typeof fully !== "undefined" && fully.startApplication) { fully.startApplication(SONOS_PKG); return; }
     } catch {}
-    window.location.href = `intent://#Intent;package=${SONOS_PKG};end`;
+    // Explicit launcher component; a package-only intent resolves to nothing and falls through to the Play Store
+    window.location.href = `intent:#Intent;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;launchFlags=0x10000000;component=${SONOS_PKG}/com.sonos.acr.SonosLaunchActivity;end`;
   };
   const tile = document.getElementById("sonosTile");
   tile.addEventListener("click", openSonos);
